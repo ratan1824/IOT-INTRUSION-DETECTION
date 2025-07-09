@@ -1,0 +1,17 @@
+pyshark~=0.6
+pandas~=2.2.3
+tqdm~=4.67.1
+src~=0.1.2
+joblib~=1.4.2
+numpy~=2.2.4
+xgboost~=3.0.0
+scikit-learn~=1.6.1
+matplotlib~=3.10.1
+psycopg2-binary~=2.9.10
+uvicorn~=0.34.0
+fastapi~=0.115.11
+starlette~=0.46.1
+networkx~=3.4.2
+simpy~=4.1.1
+requests~=2.32.3
+setuptools~=78.0.1
