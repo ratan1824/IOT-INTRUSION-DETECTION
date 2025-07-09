@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --background: #ffffff;
+            --foreground: #020817;
+            --primary: #3b82f6;
+            --primary-foreground: #f8fafc;
+            --secondary: #f1f5f9;
+            --secondary-foreground: #1e293b;
+            --muted: #f1f5f9;
+            --muted-foreground: #64748b;
+            --border: #e2e8f0;
+            --radius: 0.5rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #020817;
+                --foreground: #f8fafc;
+                --primary: #3b82f6;
+                --primary-foreground: #f8fafc;
+                --secondary: #1e293b;
+                --secondary-foreground: #f8fafc;
+                --muted: #1e293b;
+                --muted-foreground: #94a3b8;
+                --border: #1e293b;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            position: relative;
+            z-index: 10;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            header {
+                background-color: rgba(2, 8, 23, 0.6);
+            }
+        }
+
+        .header-container {
+            display: flex;
+            height: 64px;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: bold;
+            font-size: 1.25rem;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo svg {
+            height: 24px;
+            margin-right: 8px;
+        }
+
+        nav {
+            margin-left: auto;
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        nav a {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--foreground);
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem 0;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--foreground);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card {
+            background-color: var(--background);
+            border-radius: var(--radius);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background-color: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--secondary-foreground);
+            background-color: var(--secondary);
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: var(--secondary);
+            cursor: pointer;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <header>
+        <div class="container header-container">
+            <a href="/" class="logo">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 18L18 6M8 6H18V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                NetMonitor
+            </a>
+            <nav>
+                <a href="/">Home</a>
+                <a href="/admin_login">Logout</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">
+                    <i class="fas fa-shield-alt" style="color: var(--primary);"></i>
+                    Admin Dashboard
+                </h1>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-users"></i>
+                        Users
+                    </h2>
+                    <span class="badge badge-primary">
+                        <i class="fas fa-sync-alt" style="margin-right: 0.25rem;"></i>
+                        Live updating
+                    </span>
+                </div>
+                <div class="card-body">
+                    <table id="user-list">
+                        <thead>
+                            <tr>
+                                <th>User Name</th>
+                                <th>Networks Count</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        class Particle {
+            constructor(x, y, isTextParticle) {
+                this.x = x;
+                this.y = y;
+                this.size = isTextParticle ? 1.5 : Math.random() * 1 + 0.5;
+                this.baseX = x;
+                this.baseY = y;
+                this.density = isTextParticle ? Math.random() * 10 + 5 : 0;
+                this.isTextParticle = isTextParticle;
+                this.speed = Math.random() * 0.5 + 0.1;
+                this.angle = Math.random() * Math.PI * 2;
+            }
+
+            draw(ctx) {
+                // Use appropriate color based on color scheme
+                const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                ctx.fillStyle = this.isTextParticle ?
+                    (isDarkMode ? "white" : "#3b82f6") :
+                    (isDarkMode ? "rgba(255, 255, 255, 0.5)" : "rgba(59, 130, 246, 0.3)");
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            update(mouse, canvasWidth, canvasHeight) {
+                // For background particles
+                if (!this.isTextParticle) {
+                    this.x += Math.cos(this.angle) * this.speed;
+                    this.y += Math.sin(this.angle) * this.speed;
+
+                    if (this.x < 0 || this.x > canvasWidth) {
+                        this.x = (this.x + canvasWidth) % canvasWidth;
+                    }
+                    if (this.y < 0 || this.y > canvasHeight) {
+                        this.y = (this.y + canvasHeight) % canvasHeight;
+                    }
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let mouse = { x: 0, y: 0 };
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                initializeParticles();
+            }
+
+            function initializeParticles() {
+                particles = [];
+
+                // Add floating background particles
+                const numBackgroundParticles = Math.floor((canvas.width * canvas.height) / 3000);
+                for (let i = 0; i < numBackgroundParticles; i++) {
+                    particles.push(new Particle(
+                        Math.random() * canvas.width,
+                        Math.random() * canvas.height,
+                        false
+                    ));
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (const particle of particles) {
+                    particle.update(mouse, canvas.width, canvas.height);
+                    particle.draw(ctx);
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            document.addEventListener('mousemove', function(e) {
+                mouse = { x: e.x, y: e.y };
+            });
+
+            resizeCanvas();
+            animate();
+        });
+
+        function updateUserList() {
+            fetch('/users')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.querySelector("#user-list tbody");
+                    tbody.innerHTML = "";
+                    data.forEach(user => {
+                        const tr = document.createElement("tr");
+                        tr.onclick = function() {
+                            window.location.href = '/user/' + user.user_name;
+                        };
+
+                        const tdName = document.createElement("td");
+                        tdName.textContent = user.user_name;
+                        tr.appendChild(tdName);
+
+                        const tdCount = document.createElement("td");
+                        tdCount.textContent = user.networks_count;
+                        tr.appendChild(tdCount);
+
+                        const tdActions = document.createElement("td");
+                        const viewButton = document.createElement("button");
+                        viewButton.innerHTML = '<i class="fas fa-eye"></i> View';
+                        viewButton.style.padding = "0.25rem 0.5rem";
+                        viewButton.style.backgroundColor = "var(--primary)";
+                        viewButton.style.color = "white";
+                        viewButton.style.border = "none";
+                        viewButton.style.borderRadius = "var(--radius)";
+                        viewButton.style.cursor = "pointer";
+                        viewButton.style.fontSize = "0.75rem";
+                        tdActions.appendChild(viewButton);
+                        tr.appendChild(tdActions);
+
+                        tbody.appendChild(tr);
+                    });
+                });
+        }
+
+        setInterval(updateUserList, 3000);
+        updateUserList();
+    </script>
+</body>
+</html>
+

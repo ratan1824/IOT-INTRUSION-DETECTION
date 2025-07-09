@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Sign Up</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --background: #ffffff;
+            --foreground: #020817;
+            --primary: #3b82f6;
+            --primary-foreground: #f8fafc;
+            --secondary: #f1f5f9;
+            --secondary-foreground: #1e293b;
+            --muted: #f1f5f9;
+            --muted-foreground: #64748b;
+            --border: #e2e8f0;
+            --radius: 0.5rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #020817;
+                --foreground: #f8fafc;
+                --primary: #3b82f6;
+                --primary-foreground: #f8fafc;
+                --secondary: #1e293b;
+                --secondary-foreground: #f8fafc;
+                --muted: #1e293b;
+                --muted-foreground: #94a3b8;
+                --border: #1e293b;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            position: relative;
+            z-index: 10;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            header {
+                background-color: rgba(2, 8, 23, 0.6);
+            }
+        }
+
+        .header-container {
+            display: flex;
+            height: 64px;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: bold;
+            font-size: 1.25rem;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo svg {
+            height: 24px;
+            margin-right: 8px;
+        }
+
+        nav {
+            margin-left: auto;
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        nav a {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--foreground);
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .signup-card {
+            width: 100%;
+            max-width: 400px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(15px);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .signup-card {
+                background-color: rgba(2, 8, 23, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        .card-header {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .card-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--foreground);
+            margin-bottom: 0.5rem;
+        }
+
+        .error {
+            color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--foreground);
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background-color: var(--background);
+            color: var(--foreground);
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .form-footer {
+            margin-top: 1.5rem;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius);
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+        }
+
+        .button-primary {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        .button-primary:hover {
+            opacity: 0.9;
+        }
+
+        .form-link {
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+        }
+
+        .form-link a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .form-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <header>
+        <div class="container header-container">
+            <a href="/" class="logo">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 18L18 6M8 6H18V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                NetMonitor
+            </a>
+            <nav>
+                <a href="/login">Login</a>
+                <a href="/admin_login">Admin</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="signup-card">
+            <div class="card-header">
+                <h2>Create Account</h2>
+            </div>
+
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="/signup">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required>
+                </div>
+
+                <div class="form-footer">
+                    <button type="submit" class="button button-primary">Sign Up</button>
+                    <div class="form-link">
+                        Already have an account? <a href="/login">Log in</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        class Particle {
+            constructor(x, y, isTextParticle) {
+                this.x = x;
+                this.y = y;
+                this.size = isTextParticle ? 1.5 : Math.random() * 1 + 0.5;
+                this.baseX = x;
+                this.baseY = y;
+                this.density = isTextParticle ? Math.random() * 10 + 5 : 0;
+                this.isTextParticle = isTextParticle;
+                this.speed = Math.random() * 0.5 + 0.1;
+                this.angle = Math.random() * Math.PI * 2;
+            }
+
+            draw(ctx) {
+                // Use appropriate color based on color scheme
+                const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                ctx.fillStyle = this.isTextParticle ?
+                    (isDarkMode ? "white" : "#3b82f6") :
+                    (isDarkMode ? "rgba(255, 255, 255, 0.5)" : "rgba(59, 130, 246, 0.3)");
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            update(mouse, canvasWidth, canvasHeight) {
+                // For background particles
+                if (!this.isTextParticle) {
+                    this.x += Math.cos(this.angle) * this.speed;
+                    this.y += Math.sin(this.angle) * this.speed;
+
+                    if (this.x < 0 || this.x > canvasWidth) {
+                        this.x = (this.x + canvasWidth) % canvasWidth;
+                    }
+                    if (this.y < 0 || this.y > canvasHeight) {
+                        this.y = (this.y + canvasHeight) % canvasHeight;
+                    }
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let mouse = { x: 0, y: 0 };
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                initializeParticles();
+            }
+
+            function initializeParticles() {
+                particles = [];
+
+                // Add floating background particles
+                const numBackgroundParticles = Math.floor((canvas.width * canvas.height) / 3000);
+                for (let i = 0; i < numBackgroundParticles; i++) {
+                    particles.push(new Particle(
+                        Math.random() * canvas.width,
+                        Math.random() * canvas.height,
+                        false
+                    ));
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (const particle of particles) {
+                    particle.update(mouse, canvas.width, canvas.height);
+                    particle.draw(ctx);
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            document.addEventListener('mousemove', function(e) {
+                mouse = { x: e.x, y: e.y };
+            });
+
+            resizeCanvas();
+            animate();
+        });
+    </script>
+</body>
+</html>
+

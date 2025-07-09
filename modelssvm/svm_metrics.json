@@ -1,0 +1,17 @@
+{
+    "F1 macro avg": 0.998,
+    "F1 weighted avg": 1.0,
+    "class 0": 0.999,
+    "class 1": 1.0,
+    "class 10": 0.992,
+    "class 2": 1.0,
+    "class 3": 0.995,
+    "class 4": 0.993,
+    "class 5": 0.995,
+    "class 6": 1.0,
+    "class 7": 1.0,
+    "class 8": 1.0,
+    "class 9": 1.0,
+    "inf_time/d_point": 0.00017521243897633478,
+    "train_time": 34.522441
+}

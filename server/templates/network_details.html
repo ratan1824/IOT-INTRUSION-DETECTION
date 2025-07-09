@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Network Dashboard - {{ network_id }}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --background: #ffffff;
+            --foreground: #020817;
+            --primary: #3b82f6;
+            --primary-foreground: #f8fafc;
+            --secondary: #f1f5f9;
+            --secondary-foreground: #1e293b;
+            --muted: #f1f5f9;
+            --muted-foreground: #64748b;
+            --border: #e2e8f0;
+            --radius: 0.5rem;
+
+            /* Status colors */
+            --status-active: #10B981;
+            --status-quarantined: #EF4444;
+            --status-flow-control: #F59E0B;
+            --status-segmented: #EC4899;
+            --status-unknown: #6B7280;
+
+            /* Classification colors */
+            --classification-normal: #10B981;
+            --classification-warning: #F59E0B;
+            --classification-critical: #EF4444;
+
+            /* Beam colors */
+            --beam-normal: #10B981;
+            --beam-warning: #F59E0B;
+            --beam-critical: #EF4444;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #020817;
+                --foreground: #f8fafc;
+                --primary: #3b82f6;
+                --primary-foreground: #f8fafc;
+                --secondary: #1e293b;
+                --secondary-foreground: #f8fafc;
+                --muted: #1e293b;
+                --muted-foreground: #94a3b8;
+                --border: #1e293b;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            header {
+                background-color: rgba(2, 8, 23, 0.6);
+            }
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--foreground);
+        }
+
+        .network-id {
+            display: inline-block;
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            transition: background-color 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .back-link:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .back-link i {
+            font-size: 0.75rem;
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem 0;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            color: var(--muted-foreground);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab:hover:not(.active) {
+            color: var(--foreground);
+            border-bottom-color: var(--border);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background-color: var(--background);
+            border-radius: var(--radius);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--secondary);
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-title i {
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            background-color: var(--muted);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        #network {
+            width: 100%;
+            height: 500px;
+            border-radius: var(--radius);
+            background-color: var(--secondary);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .network-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .network-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, var(--secondary) 100%);
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--secondary);
+            color: var(--secondary-foreground);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: var(--secondary);
+        }
+
+        .timestamp {
+            white-space: nowrap;
+            color: var(--muted-foreground);
+            font-size: 0.75rem;
+        }
+
+        .device {
+            font-weight: 500;
+        }
+
+        .classification {
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius);
+            display: inline-block;
+            font-size: 0.75rem;
+        }
+
+        .classification.normal {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--classification-normal);
+        }
+
+        .classification.warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--classification-warning);
+        }
+
+        .classification.critical {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--classification-critical);
+        }
+
+        .empty-state {
+            padding: 3rem 1.5rem;
+            text-align: center;
+            color: var(--muted-foreground);
+        }
+
+        /* Device list */
+        .device-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .device-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background-color: var(--background);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .device-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .device-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .device-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--secondary);
+            color: var(--secondary-foreground);
+        }
+
+        .device-name {
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .device-id {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+        }
+
+        .device-status {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .device-status.active {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--status-active);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .device-status.quarantined {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--status-quarantined);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .device-status.flow_control {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--status-flow-control);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .device-status.segmented {
+            background-color: rgba(236, 72, 153, 0.1);
+            color: var(--status-segmented);
+            border: 1px solid rgba(236, 72, 153, 0.2);
+        }
+
+        .device-status.unknown {
+            background-color: rgba(107, 114, 128, 0.1);
+            color: var(--status-unknown);
+            border: 1px solid rgba(107, 114, 128, 0.2);
+        }
+
+        /* Network legend */
+        .network-legend {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.75rem;
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(5px);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .network-legend {
+                background-color: rgba(2, 8, 23, 0.8);
+            }
+        }
+
+        .legend-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* Animated Beam Styles */
+        .animated-beam {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .beam-path {
+            stroke-dasharray: 10;
+            animation: dash 1s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -20;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+                padding: 1rem 0;
+                height: auto;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .device-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--muted-foreground);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--foreground);
+        }
+    </style>
+    <!-- Include vis-network for topology visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>
+                    <i class="fas fa-network-wired" style="color: var(--primary);"></i>
+                    Network Dashboard
+                    <span class="network-id">{{ network_id }}</span>
+                </h1>
+                <a href="/" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to All Networks
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Network Visualization - Always visible -->
+            <div class="card network-container">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-project-diagram"></i> Network Topology
+                    </h2>
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span>Live updating</span>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="network">
+                        <div class="network-overlay"></div>
+                        <!-- SVG container for animated beams -->
+                        <svg id="beam-container" class="animated-beam"></svg>
+                        <!-- Network legend -->
+                        <div class="network-legend">
+                            <div class="legend-title">Status Legend</div>
+                            <div class="legend-items">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: var(--status-active);"></div>
+                                    <span>Active</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: var(--status-quarantined);"></div>
+                                    <span>Quarantined</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: var(--status-flow-control);"></div>
+                                    <span>Flow Control</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: var(--status-segmented);"></div>
+                                    <span>Segmented</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: var(--status-unknown);"></div>
+                                    <span>Unknown</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs for Classification and Device Details -->
+            <div class="tabs">
+                <div class="tab active" data-tab="classification">
+                    <i class="fas fa-exchange-alt"></i> Classification Results
+                </div>
+                <div class="tab" data-tab="devices">
+                    <i class="fas fa-server"></i> Device Details
+                </div>
+            </div>
+
+            <!-- Classification Results Section -->
+            <div class="tab-content active" id="classification-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-exchange-alt"></i> Classification Results
+                        </h2>
+                        <div class="status-indicator">
+                            <div class="status-dot"></div>
+                            <span>Live updating</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="packetsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Device</th>
+                                        <th>Classification</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Classification results will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Details Tab -->
+            <div class="tab-content" id="devices-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-server"></i> Device Details
+                        </h2>
+                        <div class="status-indicator">
+                            <div class="status-dot"></div>
+                            <span>Live updating</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="device-list" id="deviceList">
+                            <!-- Device items will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        class Particle {
+            constructor(x, y, isTextParticle) {
+                this.x = x;
+                this.y = y;
+                this.size = isTextParticle ? 1.5 : Math.random() * 1 + 0.5;
+                this.baseX = x;
+                this.baseY = y;
+                this.density = isTextParticle ? Math.random() * 10 + 5 : 0;
+                this.isTextParticle = isTextParticle;
+                this.speed = Math.random() * 0.5 + 0.1;
+                this.angle = Math.random() * Math.PI * 2;
+            }
+
+            draw(ctx) {
+                // Use appropriate color based on color scheme
+                const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                ctx.fillStyle = this.isTextParticle ?
+                    (isDarkMode ? "white" : "#3b82f6") :
+                    (isDarkMode ? "rgba(255, 255, 255, 0.5)" : "rgba(59, 130, 246, 0.3)");
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            update(mouse, canvasWidth, canvasHeight) {
+                // For background particles
+                if (!this.isTextParticle) {
+                    this.x += Math.cos(this.angle) * this.speed;
+                    this.y += Math.sin(this.angle) * this.speed;
+
+                    if (this.x < 0 || this.x > canvasWidth) {
+                        this.x = (this.x + canvasWidth) % canvasWidth;
+                    }
+                    if (this.y < 0 || this.y > canvasHeight) {
+                        this.y = (this.y + canvasHeight) % canvasHeight;
+                    }
+                }
+            }
+        }
+
+        // AnimatedBeam class to handle beam animations
+        class AnimatedBeam {
+            constructor(svgContainer) {
+                this.svgContainer = svgContainer;
+                this.beams = [];
+                this.beamIdCounter = 0;
+
+                // Set SVG dimensions to match container
+                this.updateSvgDimensions();
+
+                // Listen for window resize to update SVG dimensions
+                window.addEventListener('resize', () => this.updateSvgDimensions());
+            }
+
+            updateSvgDimensions() {
+                const container = this.svgContainer.parentElement;
+                if (container) {
+                    const rect = container.getBoundingClientRect();
+                    this.svgContainer.setAttribute('width', rect.width);
+                    this.svgContainer.setAttribute('height', rect.height);
+                    this.svgContainer.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+                }
+            }
+
+            // Create a beam from one node to another
+            createBeam(fromNode, toNode, options = {}) {
+                const beamId = `beam-${this.beamIdCounter++}`;
+                const fromPos = network.getPositions([fromNode])[fromNode];
+                const toPos = network.getPositions([toNode])[toNode];
+
+                if (!fromPos || !toPos) return null;
+
+                // Convert network coordinates to DOM coordinates
+                const networkCanvas = document.querySelector('.vis-network canvas');
+                const rect = networkCanvas.getBoundingClientRect();
+                const networkRect = this.svgContainer.parentElement.getBoundingClientRect();
+
+                const fromX = fromPos.x + rect.width / 2;
+                const fromY = fromPos.y + rect.height / 2;
+                const toX = toPos.x + rect.width / 2;
+                const toY = toPos.y + rect.height / 2;
+
+                // Calculate control point for curved path
+                const curvature = options.curvature || 0;
+                const midX = (fromX + toX) / 2;
+                const midY = (fromY + toY) / 2 - curvature;
+
+                // Create path
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('id', beamId);
+                path.setAttribute('d', `M ${fromX},${fromY} Q ${midX},${midY} ${toX},${toY}`);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke-width', options.width || 3);
+
+                // Set up gradient
+                const gradientId = `gradient-${beamId}`;
+                const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                gradient.setAttribute('id', gradientId);
+                gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+                gradient.setAttribute('x1', fromX);
+                gradient.setAttribute('y1', fromY);
+                gradient.setAttribute('x2', toX);
+                gradient.setAttribute('y2', toY);
+
+                // Determine color based on classification severity
+                let startColor, stopColor;
+                if (options.severity === 'critical') {
+                    startColor = 'rgba(239, 68, 68, 0)';
+                    stopColor = 'rgba(239, 68, 68, 1)';
+                } else if (options.severity === 'warning') {
+                    startColor = 'rgba(245, 158, 11, 0)';
+                    stopColor = 'rgba(245, 158, 11, 1)';
+                } else {
+                    startColor = 'rgba(16, 185, 129, 0)';
+                    stopColor = 'rgba(16, 185, 129, 1)';
+                }
+
+                // Create gradient stops
+                const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                stop1.setAttribute('offset', '0%');
+                stop1.setAttribute('stop-color', startColor);
+
+                const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                stop2.setAttribute('offset', '50%');
+                stop2.setAttribute('stop-color', stopColor);
+
+                const stop3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                stop3.setAttribute('offset', '100%');
+                stop3.setAttribute('stop-color', startColor);
+
+                // Add stops to gradient
+                gradient.appendChild(stop1);
+                gradient.appendChild(stop2);
+                gradient.appendChild(stop3);
+
+                // Add gradient to defs
+                let defs = this.svgContainer.querySelector('defs');
+                if (!defs) {
+                    defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                    this.svgContainer.appendChild(defs);
+                }
+                defs.appendChild(gradient);
+
+                // Set path to use gradient
+                path.setAttribute('stroke', `url(#${gradientId})`);
+                path.classList.add('beam-path');
+
+                // Add path to SVG
+                this.svgContainer.appendChild(path);
+
+                // Store beam info
+                const beam = {
+                    id: beamId,
+                    element: path,
+                    gradient: gradient,
+                    fromNode,
+                    toNode,
+                    createdAt: Date.now()
+                };
+
+                this.beams.push(beam);
+
+                // Set up animation
+                this.animateBeam(beam, options.duration || 2000);
+
+                return beam;
+            }
+
+            // Animate the beam
+            animateBeam(beam, duration) {
+                // Animate the gradient
+                const animateGradient = () => {
+                    const elapsed = Date.now() - beam.createdAt;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    if (progress < 1) {
+                        // Move gradient along the path
+                        const x1 = parseFloat(beam.gradient.getAttribute('x1'));
+                        const y1 = parseFloat(beam.gradient.getAttribute('y1'));
+                        const x2 = parseFloat(beam.gradient.getAttribute('x2'));
+                        const y2 = parseFloat(beam.gradient.getAttribute('y2'));
+
+                        const newX1 = x1 + (x2 - x1) * progress;
+                        const newY1 = y1 + (y2 - y1) * progress;
+
+                        beam.gradient.setAttribute('x1', newX1);
+                        beam.gradient.setAttribute('y1', newY1);
+
+                        requestAnimationFrame(animateGradient);
+                    } else {
+                        // Animation complete, remove beam after a short delay
+                        setTimeout(() => this.removeBeam(beam.id), 500);
+                    }
+                };
+
+                requestAnimationFrame(animateGradient);
+            }
+
+            // Remove a beam by ID
+            removeBeam(beamId) {
+                const index = this.beams.findIndex(beam => beam.id === beamId);
+                if (index !== -1) {
+                    const beam = this.beams[index];
+
+                    // Remove gradient
+                    if (beam.gradient && beam.gradient.parentNode) {
+                        beam.gradient.parentNode.removeChild(beam.gradient);
+                    }
+
+                    // Remove path
+                    if (beam.element && beam.element.parentNode) {
+                        beam.element.parentNode.removeChild(beam.element);
+                    }
+
+                    // Remove from array
+                    this.beams.splice(index, 1);
+                }
+            }
+
+            // Update beam positions when nodes move
+            updateBeamPositions() {
+                this.beams.forEach(beam => {
+                    const fromPos = network.getPositions([beam.fromNode])[beam.fromNode];
+                    const toPos = network.getPositions([beam.toNode])[beam.toNode];
+
+                    if (fromPos && toPos) {
+                        const networkCanvas = document.querySelector('.vis-network canvas');
+                        const rect = networkCanvas.getBoundingClientRect();
+
+                        const fromX = fromPos.x + rect.width / 2;
+                        const fromY = fromPos.y + rect.height / 2;
+                        const toX = toPos.x + rect.width / 2;
+                        const toY = toPos.y + rect.height / 2;
+
+                        // Calculate control point for curved path
+                        const midX = (fromX + toX) / 2;
+                        const midY = (fromY + toY) / 2;
+
+                        beam.element.setAttribute('d', `M ${fromX},${fromY} Q ${midX},${midY} ${toX},${toY}`);
+                    }
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let mouse = { x: 0, y: 0 };
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                initializeParticles();
+            }
+
+            function initializeParticles() {
+                particles = [];
+
+                // Add floating background particles
+                const numBackgroundParticles = Math.floor((canvas.width * canvas.height) / 3000);
+                for (let i = 0; i < numBackgroundParticles; i++) {
+                    particles.push(new Particle(
+                        Math.random() * canvas.width,
+                        Math.random() * canvas.height,
+                        false
+                    ));
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (const particle of particles) {
+                    particle.update(mouse, canvas.width, canvas.height);
+                    particle.draw(ctx);
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            document.addEventListener('mousemove', function(e) {
+                mouse = { x: e.x, y: e.y };
+            });
+
+            resizeCanvas();
+            animate();
+        });
+
+        // Initialize vis-network with enhanced visualization
+        var container = document.getElementById('network');
+        var nodes = new vis.DataSet([]);
+        var edges = new vis.DataSet([]);
+        var data = { nodes: nodes, edges: edges };
+        var beamManager;
+        var centralNodeId = "central_node"; // ID for the central/main node
+        var lastPackets = []; // Store last processed packets to avoid duplicates
+
+        // Enhanced network options for better visualization
+        var options = {
+            physics: {
+                enabled: true,
+                stabilization: {
+                    enabled: true,
+                    iterations: 1000,
+                    updateInterval: 25
+                },
+                barnesHut: {
+                    gravitationalConstant: -3000,
+                    centralGravity: 0.3,
+                    springLength: 120,
+                    springConstant: 0.05,
+                    damping: 0.09,
+                    avoidOverlap: 0.8
+                }
+            },
+            nodes: {
+                shape: 'dot',
+                size: 24,
+                font: {
+                    size: 14,
+                    color: "#FFFFFF",
+                    face: 'Inter',
+                    strokeWidth: 3,
+                    strokeColor: function(context) {
+                        // Match node border color for better readability
+                        return context.node.color.border || '#000000';
+                    }
+                },
+                borderWidth: 3,
+                shadow: {
+                    enabled: true,
+                    color: 'rgba(0,0,0,0.3)',
+                    size: 10,
+                    x: 0,
+                    y: 0
+                }
+            },
+            edges: {
+                width: 2,
+                selectionWidth: 3,
+                color: {
+                    color: "rgba(59, 130, 246, 0.4)",
+                    highlight: "#3b82f6",
+                    hover: "#3b82f6"
+                },
+                smooth: {
+                    type: 'dynamic',
+                    roundness: 0.5
+                },
+                hoverWidth: 2,
+                shadow: {
+                    enabled: true,
+                    color: 'rgba(0,0,0,0.2)',
+                    size: 5,
+                    x: 0,
+                    y: 0
+                }
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 200,
+                hideEdgesOnDrag: true,
+                multiselect: false
+            }
+        };
+
+        var network = new vis.Network(container, data, options);
+
+        // Initialize beam manager after network is ready
+        network.once("afterDrawing", function() {
+            beamManager = new AnimatedBeam(document.getElementById('beam-container'));
+
+            // Add central node if it doesn't exist
+            if (!nodes.get(centralNodeId)) {
+                nodes.add({
+                    id: centralNodeId,
+                    label: "Main System",
+                    size: 40,
+                    color: {
+                        background: "#3b82f6",
+                        border: "#2563eb",
+                        highlight: {
+                            background: "#60a5fa",
+                            border: "#2563eb"
+                        },
+                        hover: {
+                            background: "#60a5fa",
+                            border: "#2563eb"
+                        }
+                    }
+                });
+            }
+        });
+
+        // After stabilization, disable physics for smoother interaction
+        network.once("stabilizationIterationsDone", function () {
+            // Keep physics enabled but reduce its effect for smoother interaction
+            network.setOptions({
+                physics: {
+                    enabled: true,
+                    barnesHut: {
+                        gravitationalConstant: -1000,
+                        springLength: 150,
+                        springConstant: 0.02
+                    }
+                }
+            });
+            console.log("Stabilization complete; physics adjusted for better interaction.");
+        });
+
+        // Update beam positions when network is moving/zooming
+        network.on("afterDrawing", function() {
+            if (beamManager) {
+                beamManager.updateBeamPositions();
+            }
+        });
+
+        // Update topology using diff update method.
+        function updateTopology() {
+            fetch('/network/{{ network_id }}/topology?_=' + new Date().getTime())
+                .then(response => response.json())
+                .then(newGraph => {
+                    if (newGraph.nodes) {
+                        newGraph.nodes.forEach(function(newNode) {
+                            // Enhanced node styling with glowing effects based on status
+                            if (newNode.status === "active") {
+                                newNode.color = {
+                                    background: "#10B981",
+                                    border: "#059669",
+                                    highlight: {
+                                        background: "#10B981",
+                                        border: "#059669"
+                                    },
+                                    hover: {
+                                        background: "#34D399",
+                                        border: "#059669"
+                                    }
+                                };
+                            } else if (newNode.status === "quarantined") {
+                                newNode.color = {
+                                    background: "#EF4444",
+                                    border: "#DC2626",
+                                    highlight: {
+                                        background: "#EF4444",
+                                        border: "#DC2626"
+                                    },
+                                    hover: {
+                                        background: "#F87171",
+                                        border: "#DC2626"
+                                    }
+                                };
+                            } else if (newNode.status === "flow_control") {
+                                newNode.color = {
+                                    background: "#F59E0B",
+                                    border: "#D97706",
+                                    highlight: {
+                                        background: "#F59E0B",
+                                        border: "#D97706"
+                                    },
+                                    hover: {
+                                        background: "#FBBF24",
+                                        border: "#D97706"
+                                    }
+                                };
+                            } else if (newNode.status === "segmented") {
+                                newNode.color = {
+                                    background: "#EC4899",
+                                    border: "#DB2777",
+                                    highlight: {
+                                        background: "#EC4899",
+                                        border: "#DB2777"
+                                    },
+                                    hover: {
+                                        background: "#F472B6",
+                                        border: "#DB2777"
+                                    }
+                                };
+                            } else {
+                                newNode.color = {
+                                    background: "#6B7280",
+                                    border: "#4B5563",
+                                    highlight: {
+                                        background: "#6B7280",
+                                        border: "#4B5563"
+                                    },
+                                    hover: {
+                                        background: "#9CA3AF",
+                                        border: "#4B5563"
+                                    }
+                                };
+                            }
+
+                            // Add tooltip with device info
+                            newNode.title = `<div style="padding: 5px;">
+                                <strong>${newNode.label || newNode.id}</strong><br>
+                                Status: ${newNode.status || 'Unknown'}<br>
+                                ID: ${newNode.id}
+                            </div>`;
+
+                            var existing = nodes.get(newNode.id);
+                            if (existing) {
+                                if (existing.label !== newNode.label || existing.status !== newNode.status) {
+                                    nodes.update(newNode);
+                                }
+                            } else {
+                                nodes.add(newNode);
+                            }
+                        });
+                        var currentIds = nodes.getIds();
+                        newGraph.nodes.forEach(function(n) {
+                            const idx = currentIds.indexOf(n.id);
+                            if (idx !== -1) {
+                                currentIds.splice(idx, 1);
+                            }
+                        });
+                        if (currentIds.length > 0) { nodes.remove(currentIds); }
+
+                        // Update device list
+                        updateDeviceList(newGraph.nodes);
+                    }
+                    if (newGraph.edges) {
+                        newGraph.edges.forEach(function(newEdge) {
+                            var edgeId = newEdge.from + "_" + newEdge.to;
+                            newEdge.id = edgeId;
+
+                            // Add edge styling
+                            newEdge.arrows = {
+                                to: {
+                                    enabled: true,
+                                    scaleFactor: 0.5
+                                }
+                            };
+
+                            // Add edge title/tooltip
+                            newEdge.title = `Connection: ${newEdge.from} → ${newEdge.to}`;
+
+                            var existing = edges.get(edgeId);
+                            if (!existing) {
+                                edges.add(newEdge);
+                            }
+                        });
+                        var currentEdges = edges.getIds();
+                        newGraph.edges.forEach(function(e) {
+                            var eid = e.from + "_" + e.to;
+                            const idx = currentEdges.indexOf(eid);
+                            if (idx !== -1) {
+                                currentEdges.splice(idx, 1);
+                            }
+                        });
+                        if (currentEdges.length > 0) { edges.remove(currentEdges); }
+                    }
+                })
+                .catch(error => console.error("Error fetching topology:", error));
+        }
+
+        // Update classification results table and create beam animations
+        function updatePackets() {
+            fetch('/user/network/{{ network_id }}/packets?_=' + new Date().getTime())
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.querySelector("#packetsTable tbody");
+                    tbody.innerHTML = "";
+                    if (data.length === 0) {
+                        tbody.innerHTML = "<tr><td colspan='3' class='empty-state'>No classification results received.</td></tr>";
+                    } else {
+                        // Process new packets and create beam animations
+                        data.forEach((entry, index) => {
+                            // Check if this is a new packet (only process the first few to avoid overwhelming the UI)
+                            const packetKey = `${entry.device}-${entry.timestamp}-${entry.classification}`;
+                            if (!lastPackets.includes(packetKey) && index < 5) {
+                                // Create beam animation from device to central node
+                                if (beamManager && entry.device) {
+                                    // Determine severity based on classification
+                                    let severity = "normal";
+                                    if (["dos_synflooding", "mirai_ackflooding", "telnet_bruteforce",
+                                         "mirai_httpflooding", "mirai_udpflooding", "mitm_arpspoofing"].includes(entry.classification)) {
+                                        severity = "critical";
+                                    } else if (["host_discovery", "scanning_host", "scanning_port", "scanning_os"].includes(entry.classification)) {
+                                        severity = "warning";
+                                    }
+
+                                    // Create beam with appropriate color based on severity
+                                    beamManager.createBeam(entry.device, centralNodeId, {
+                                        severity: severity,
+                                        curvature: Math.random() * 100 - 50, // Random curvature for visual variety
+                                        duration: 3000 + Math.random() * 1000 // Random duration for visual variety
+                                    });
+                                }
+
+                                // Add to processed packets
+                                lastPackets.push(packetKey);
+                                // Keep the list at a reasonable size
+                                if (lastPackets.length > 50) {
+                                    lastPackets.shift();
+                                }
+                            }
+
+                            // Create table row
+                            const tr = document.createElement("tr");
+
+                            const tdTimestamp = document.createElement("td");
+                            tdTimestamp.className = "timestamp";
+                            tdTimestamp.textContent = formatTimestamp(entry.timestamp) || "N/A";
+                            tr.appendChild(tdTimestamp);
+
+                            const tdDevice = document.createElement("td");
+                            tdDevice.className = "device";
+                            tdDevice.textContent = entry.device || "Unknown";
+                            tr.appendChild(tdDevice);
+
+                            const tdClassification = document.createElement("td");
+                            const classSpan = document.createElement("span");
+
+                            // Determine classification severity
+                            let severity = "normal";
+                            if (["dos_synflooding", "mirai_ackflooding", "telnet_bruteforce",
+                                 "mirai_httpflooding", "mirai_udpflooding", "mitm_arpspoofing"].includes(entry.classification)) {
+                                severity = "critical";
+                            } else if (["host_discovery", "scanning_host", "scanning_port", "scanning_os"].includes(entry.classification)) {
+                                severity = "warning";
+                            }
+
+                            classSpan.className = `classification ${severity}`;
+                            classSpan.textContent = entry.classification;
+                            tdClassification.appendChild(classSpan);
+                            tr.appendChild(tdClassification);
+
+                            tbody.appendChild(tr);
+                        });
+                    }
+                })
+                .catch(error => console.error("Error fetching packets:", error));
+        }
+
+        // Update device list
+        function updateDeviceList(nodeList) {
+            const deviceListEl = document.getElementById('deviceList');
+            if (!deviceListEl) return;
+
+            deviceListEl.innerHTML = '';
+
+            if (!nodeList || nodeList.length === 0) {
+                deviceListEl.innerHTML = "<div class='empty-state'>No devices found.</div>";
+                return;
+            }
+
+            nodeList.forEach(node => {
+                // Skip the central node in the device list
+                if (node.id === centralNodeId) return;
+
+                const deviceItem = document.createElement('div');
+                deviceItem.className = 'device-item';
+
+                // Create device info section
+                const deviceInfo = document.createElement('div');
+                deviceInfo.className = 'device-info';
+
+                // Create device icon
+                const deviceIcon = document.createElement('div');
+                deviceIcon.className = 'device-icon';
+
+                // Determine icon based on device type
+                let iconClass = 'fas fa-laptop';
+                if (node.id.includes('router') || node.label.includes('Router')) {
+                    iconClass = 'fas fa-network-wired';
+                } else if (node.id.includes('switch') || node.label.includes('Switch')) {
+                    iconClass = 'fas fa-sitemap';
+                } else if (node.id.includes('server') || node.label.includes('Server')) {
+                    iconClass = 'fas fa-server';
+                } else if (node.id.includes('iot') || node.label.includes('IoT')) {
+                    iconClass = 'fas fa-microchip';
+                }
+
+                const icon = document.createElement('i');
+                icon.className = iconClass;
+                deviceIcon.appendChild(icon);
+                deviceInfo.appendChild(deviceIcon);
+
+                // Create device name and ID
+                const deviceText = document.createElement('div');
+                const deviceName = document.createElement('p');
+                deviceName.className = 'device-name';
+                deviceName.textContent = node.label || node.id;
+
+                const deviceId = document.createElement('p');
+                deviceId.className = 'device-id';
+                deviceId.textContent = node.id;
+
+                deviceText.appendChild(deviceName);
+                deviceText.appendChild(deviceId);
+                deviceInfo.appendChild(deviceText);
+
+                // Create status badge
+                const deviceStatus = document.createElement('div');
+                deviceStatus.className = `device-status ${node.status || 'unknown'}`;
+
+                // Set status label
+                let statusLabel = "Unknown";
+                if (node.status === "active") statusLabel = "Active";
+                else if (node.status === "quarantined") statusLabel = "Quarantined";
+                else if (node.status === "flow_control") statusLabel = "Flow Control";
+                else if (node.status === "segmented") statusLabel = "Segmented";
+
+                deviceStatus.textContent = statusLabel;
+
+                // Add elements to device item
+                deviceItem.appendChild(deviceInfo);
+                deviceItem.appendChild(deviceStatus);
+
+                // Add to device list
+                deviceListEl.appendChild(deviceItem);
+            });
+        }
+
+        // Format timestamp as relative time
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return "N/A";
+
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.round(diffMs / 1000);
+            const diffMin = Math.round(diffSec / 60);
+            const diffHour = Math.round(diffMin / 60);
+
+            if (diffSec < 60) {
+                return `${diffSec} sec ago`;
+            } else if (diffMin < 60) {
+                return `${diffMin} min ago`;
+            } else if (diffHour < 24) {
+                return `${diffHour} hr ago`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        }
+
+        // Tab switching functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                // Add active class to clicked tab
+                tab.classList.add('active');
+
+                // Hide all tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Show corresponding tab content
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+            });
+        });
+
+        setInterval(updateTopology, 3000);
+        setInterval(updatePackets, 3000);
+        updateTopology();
+        updatePackets();
+    </script>
+</body>
+</html>
+
